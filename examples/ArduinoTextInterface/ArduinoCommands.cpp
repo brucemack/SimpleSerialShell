@@ -278,9 +278,9 @@ int addArduinoCommands(SimpleSerialShell & shell)
     ADD_COMMAND("analogread", "pinNumber", analogRead);
 
 #ifndef ARDUINO_ARCH_ESP32
-    ADD_COMMAND(F("analogwrite", "pinNumber value"), analogWrite);
-    ADD_COMMAND(F("tone", "pinNumber freqHz [durationMillisec]"), doTone);
-    ADD_COMMAND(F("notone", "pinNumber"), doNoTone);
+    ADD_COMMAND("analogwrite", "pinNumber value", analogWrite);
+    ADD_COMMAND("tone", "pinNumber freqHz [durationMillisec]", doTone);
+    ADD_COMMAND("notone", "pinNumber", doNoTone);
 #endif
 
     return EXIT_SUCCESS;
