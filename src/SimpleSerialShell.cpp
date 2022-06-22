@@ -35,13 +35,13 @@ class SimpleSerialShell::Command {
         };
 
         // Comparison used for sort commands
-        int compare(const Command * other) const
+        int compare(const Command * other, bool isCaseSensitive) const
         {
             const String otherNameString(other->nameAndDocs);
-            return compareName(otherNameString.c_str());
+            return compareName(otherNameString.c_str(), isCaseSensitive);
         };
 
-        int compareName(const char * aName) const
+        int compareName(const char * aName, bool isCaseSensitive) const
         {
             // Look for the command delimiter and make sure we don't
             // consider anything beyond it in the comparison.  There
@@ -56,7 +56,11 @@ class SimpleSerialShell::Command {
             if (delim >= 0) {
                 work.remove(delim);
             }
-            return strncasecmp(work.c_str(), aName, SIMPLE_SERIAL_SHELL_BUFSIZE);
+            if (!isCaseSensitive) {
+                return strncasecmp(work.c_str(), aName, SIMPLE_SERIAL_SHELL_BUFSIZE);
+            } else {
+                return strncmp(work.c_str(), aName, SIMPLE_SERIAL_SHELL_BUFSIZE);
+            }
         };
 
         /**
@@ -83,7 +87,9 @@ class SimpleSerialShell::Command {
 SimpleSerialShell::SimpleSerialShell()
     : shellConnection(NULL),
       m_lastErrNo(EXIT_SUCCESS),
-      tokenizer(strtok_r)
+      tokenizer(strtok_r),
+      isEchoEnabled(true),
+      isCaseSensitive(false)
 {
     resetBuffer();
 
@@ -102,7 +108,7 @@ void SimpleSerialShell::addCommand(
 
     Command* temp2 = firstCommand;
     Command** temp3 = &firstCommand;
-    while (temp2 != NULL && (newCmd->compare(temp2) > 0) )
+    while (temp2 != NULL && (newCmd->compare(temp2, isCaseSensitive) > 0) )
     {
         temp3 = &temp2->next;
         temp2 = temp2->next;
@@ -158,20 +164,26 @@ bool SimpleSerialShell::prepInput(void)
             case '\b':  // CTRL(H) backspace
                 // Destructive backspace: remove last character
                 if (inptr > 0) {
-                    print("\b \b");  // remove char in raw UI
+                    if (isEchoEnabled) {
+                        print("\b \b");  // remove char in raw UI
+                    }
                     linebuffer[--inptr] = 0;
                 }
                 break;
 
             case 0x12: //CTRL('R')
                 //Ctrl-R retypes the line
-                print("\r\n");
-                print(linebuffer);
+                if (isEchoEnabled) {
+                    print("\r\n");
+                    print(linebuffer);
+                }
                 break;
 
             case 0x15: //CTRL('U')
                 //Ctrl-U deletes the entire line and starts over.
-                println("XXX");
+                if (isEchoEnabled) {
+                    println("XXX");
+                }
                 resetBuffer();
                 break;
 
@@ -181,7 +193,9 @@ bool SimpleSerialShell::prepInput(void)
             case '\r':  //CTRL('M') carriage return (or "Enter" key)
                 // raw input only sends "return" for the keypress
                 // line is complete
-                println();     // Echo newline too.
+                if (isEchoEnabled) {
+                    println();     // Echo newline too.
+                }
                 bufferReady = true;
                 break;
 
@@ -193,7 +207,9 @@ bool SimpleSerialShell::prepInput(void)
             default:
                 // Otherwise, echo the character and append it to the buffer
                 linebuffer[inptr++] = c;
-                write(c);
+                if (isEchoEnabled) {
+                    write(c);
+                }
                 if (inptr >= SIMPLE_SERIAL_SHELL_BUFSIZE-1) {
                     bufferReady = true; // flush to avoid overflow
                 }
@@ -251,7 +267,7 @@ int SimpleSerialShell::execute(int argc, char **argv)
 {
     m_lastErrNo = 0;
     for ( Command * aCmd = firstCommand; aCmd != NULL; aCmd = aCmd->next) {
-        if (aCmd->compareName(argv[0]) == 0) {
+        if (aCmd->compareName(argv[0], isCaseSensitive) == 0) {
             m_lastErrNo = aCmd->execute(argc, argv);
             resetBuffer();
             return m_lastErrNo;
@@ -343,4 +359,14 @@ void SimpleSerialShell::flush()
 void SimpleSerialShell::setTokenizer(TokenizerFunction f)
 {
     tokenizer = f;
+}
+
+void SimpleSerialShell::setCaseSensitive(bool b) 
+{
+    isCaseSensitive = b;
+}
+
+void SimpleSerialShell::setEchoEnabled(bool b) 
+{
+    isEchoEnabled = b;
 }

@@ -82,6 +82,16 @@ class SimpleSerialShell : public Stream {
         // optional.
         void setTokenizer(TokenizerFunction f);
 
+        // Use this function to control whether the command parser is 
+        // case sensitive or not.  By default it is case insensitive.
+        void setCaseSensitive(bool isCaseSensitive);
+
+        // Use this function to control whether the shell echos back what the 
+        // user types.  Be default all typed characters are echoed back.  
+        // It may be more convenient to disble echo for situations where the shell
+        // is interacting with a machine instead of a human.
+        void setEchoEnabled(bool isCaseSensitive);
+
     private:
 
         SimpleSerialShell(void);
@@ -102,6 +112,8 @@ class SimpleSerialShell : public Stream {
         static Command * firstCommand;
 
         TokenizerFunction tokenizer;
+        bool isEchoEnabled;
+        bool isCaseSensitive;
 };
 
 ////////////////////////////////////////////////////////////////////////////////

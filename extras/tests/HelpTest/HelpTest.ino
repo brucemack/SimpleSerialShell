@@ -120,6 +120,20 @@ testF(HelpTest, helpTest2)
     assertEqual(terminal.getline(),
         ("Range 1 2"
         COMMAND_PROMPT));
+
+    // Change to case-sensitive mode and validate that an error is generated
+    // on exactly the same command that succeeded before.
+    shell.setCaseSensitive(true);
+    terminal.pressKeys("Range 1 2\r");
+    assertTrue(shell.executeIfInput());
+
+    assertEqual(terminal.getline(),
+        ("Range 1 2" NEW_LINE
+        "\"Range\": -1: command not found"
+        COMMAND_PROMPT));
+
+    // There are statics here, so we need to set things back.
+    shell.setCaseSensitive(false);
 }
 
 //////////////////////////////////////////////////////////////////////////////
